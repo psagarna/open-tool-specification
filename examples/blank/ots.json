@@ -1,0 +1,147 @@
+{
+  "otsgateway": {
+    "enabled": true,
+    "server_url": "http://localhost",
+    "server_port": "7082",
+    "log_file": "logs/otsgateway.log",
+    "cors": {
+      "enabled": false,
+      "max_age_sec": 600
+    },
+    "watch_files": true,
+    "watch_interval_sec": 5
+  },
+  "debug": {
+    "enabled": false,
+    "timeout_sec": 30,
+    "on_timeout": "continue",
+    "max_paused": 3,
+    "allow_abort": true
+  },
+  "auth_server": {
+    "internal": {
+      "enabled": true,
+      "port": "7083",
+      "token_endpoint": "/oauth/token",
+      "jwt_secret": "env:OTS_JWT_SECRET",
+      "token_duration_minutes": 60,
+      "bot_detection": {
+        "enabled": true,
+        "rate_per_minute": 10,
+        "burst": 5
+      }
+    },
+    "external": {
+      "enabled": false
+    }
+  },
+  "dashboard": {
+    "enabled": true,
+    "port": "7084",
+    "access_key": "env:OTS_DASHBOARD_KEY",
+    "refresh_interval_sec": 2,
+    "log_file": "logs/dashboard.log"
+  },
+  "console": {
+    "enabled": true,
+    "port": "7085",
+    "access_key": "env:OTS_CONSOLE_KEY",
+    "log_file": "logs/console.log"
+  },
+  "mock_server": {
+    "enabled": true,
+    "server_url": "http://localhost",
+    "server_port": "7086",
+    "log_file": "logs/mock_server.log",
+    "auth_server": {
+      "internal": {
+        "enabled": false,
+        "token_endpoint": "/oauth/token",
+        "jwt_secret": "env:OTS_MOCK_JWT_SECRET",
+        "token_duration_minutes": 30,
+        "bot_detection": {
+          "enabled": false,
+          "rate_per_minute": 60,
+          "burst": 10
+        }
+      },
+      "external": {
+        "enabled": false
+      }
+    }
+  },
+  "telemetry": {
+    "enabled": true,
+    "file": "logs/transactions.jsonl",
+    "max_history": 500,
+    "max_file_mb": 64
+  },
+  "plans": {
+    "free": {
+      "rate_per_second": 2,
+      "burst": 5,
+      "quota_hourly": 60,
+      "quota_daily": 500,
+      "tokens_hourly": 50000,
+      "tokens_daily": 400000,
+      "max_tokens_per_call": 12000
+    }
+  },
+  "mcps": [
+    {
+      "name": "ejemplo",
+      "description": "The contract that ships in this folder",
+      "context_path": "/ejemplo",
+      "ots_file": "ejemplo-ots.yaml",
+      "output": {
+        "enforce": "warn"
+      },
+      "backend_server": [
+        {
+          "name": "Ejemplo backend",
+          "url": "https://localhost:8243/example/1.0/mcp",
+          "description": "Point this at the MCP server that really answers. Until then it is mocked.",
+          "mock": {
+            "enabled": true,
+            "delay_ms": 0
+          },
+          "tls_skip_verify": true,
+          "security": {
+            "type": ""
+          }
+        }
+      ]
+    }
+  ],
+  "subscriptions": [
+    {
+      "consumer_name": "c0",
+      "description": "The first consumer. Its key is a reference: put a value in secrets.json.",
+      "security": [
+        {
+          "mcps": [
+            {
+              "ejemplo": {
+                "tools": [
+                  "*"
+                ],
+                "resources": [
+                  "*"
+                ],
+                "prompts": [
+                  "*"
+                ]
+              }
+            }
+          ],
+          "auth_method": [
+            {
+              "api_key": "env:C0_API_KEY"
+            }
+          ],
+          "key_plan": "free"
+        }
+      ]
+    }
+  ]
+}

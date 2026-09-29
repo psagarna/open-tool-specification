@@ -1,0 +1,1 @@
+select cuentaId, clienteId, saldo from cuentas where clienteId = $cliente_id;

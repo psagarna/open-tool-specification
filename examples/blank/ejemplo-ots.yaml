@@ -1,0 +1,54 @@
+# =====================================================================
+# Ejemplo
+# OTS specification — the contract an agent sees, served by the OTS Gateway.
+# =====================================================================
+openapi: "3.0.3"
+info:
+  title: "Ejemplo"
+  version: "1.0.0"
+  description: "Describe here what this MCP is for, in one paragraph."
+
+# Where the backend that answers these tools lives. The gateway takes the
+# credentials from its config.json; the contract only says the address.
+servers:
+  - protocol: streamable-http
+    url: "https://localhost:8243/example/1.0/mcp"
+    description: "Backend MCP server"
+
+# The scopes every tool of this document demands, unless it declares its own.
+security: []
+
+tools:
+
+  ejemplo_listar:
+    name: "ejemplo_listar"
+    summary: "An example tool"
+    description: "Replace this with what the tool really does. The agent reads it."
+    inputSchema:
+      type: "object"
+      additionalProperties: false
+      properties: {}
+      example: {}
+    outputSchema:
+      type: "object"
+      additionalProperties: false
+      properties:
+        items:
+          type: "array"
+          items:
+            type: "object"
+            additionalProperties: false
+            properties:
+              id: { type: "string" }
+              nombre: { type: "string" }
+    example:
+      items:
+        - id: "1"
+          nombre: "First"
+
+resources: {}
+
+prompts: {}
+
+components:
+  schemas: {}

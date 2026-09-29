@@ -1,0 +1,563 @@
+ots: "1.3.0"
+info:
+  title: "BotiBank Core Tools (MCP Server)"
+  version: "1.2.0"
+  description: "Herramientas de IA para interactuar con la base de datos core de BotiBank (Clientes, Cuentas, Transferencias, Servicios e Hipotecas)."
+  contact:
+    name: "Equipo de Arquitectura BotiBank"
+    url: "https://api.botibank.com/developers"
+
+# =====================================================================
+# 1. SERVIDORES Y ENRUTAMIENTO MCP (WSO2 API Manager)
+# =====================================================================
+servers:
+  - protocol: streamable-http
+    url: "https://localhost:8243/botibankmcp/1.0/mcp"
+    description: "WSO2 API Gateway - Conexión SSE para BotiBank Agent"
+
+security:
+  - AgentOAuthClientCredentials: []
+
+# =====================================================================
+# 2. CATÁLOGO DE HERRAMIENTAS
+# =====================================================================
+tools:
+
+  # ----------------------------------------
+  # HERRAMIENTAS DE LECTURA (READ-ONLY)
+  # ----------------------------------------
+  listar_clientes:
+    name: "listar_clientes"
+    # Nombre real de la tool en el MCP de destino (WSO2 BotiBankMCP)
+    backend:
+      tool: "get_clientes"
+    summary: "Listar clientes"
+    description: "Obtiene la lista completa de clientes del banco."
+    cache:
+      ttlMs: 300000 # 5 min
+    inputSchema:
+      type: "object"
+      properties: {} # Sin parámetros
+      additionalProperties: false # Recomendado por MCP para tools sin parámetros
+      example: {}
+    outputSchema:
+      type: "object"
+      additionalProperties: false
+      properties:
+        clientes:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Cliente"
+    # Respuesta de ejemplo que devuelve el mock (formato OpenAPI: example)
+    example:
+      - id: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+        nombre: "Ana"
+        apellido: "García"
+      - id: "88888888-cc1c-4c5a-8b50-9ee4fb6c214d"
+        nombre: "Pablo"
+        apellido: "Saga"
+      - id: "99999999-cc1c-4c5a-8b50-9ee4fb6c214d"
+        nombre: "María"
+        apellido: "López"
+    server:
+      - protocol: streamable-http
+        url: "https://localhost:8243/botibankext/1.0/mcp"
+        description: "WSO2 API Gateway - Conexión SSE para BotiBank Agent"
+
+  consultar_cuentas:
+    name: "consultar_cuentas"
+    backend:
+      tool: "get_cuentas"
+      arguments:
+        clienteId: "cliente_id"
+    summary: "Consultar cuentas de un cliente"
+    description: "Lista las cuentas bancarias pertenecientes a un cliente dado su ID."
+    aiHints:
+      whenToUse: "Úsalo para verificar el saldo (saldo) de las cuentas (Corriente, Ahorro, Inversión) de un usuario."
+    inputSchema:
+      type: "object"
+      required: [ "cliente_id" ]
+      properties:
+        cliente_id:
+          type: "string"
+          description: "ID del cliente (UUID)"
+      example:
+        cliente_id: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+    outputSchema:
+      type: "object"
+      additionalProperties: false
+      properties:
+        cuentas:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Cuenta"
+    examples:
+      default:
+        summary: "Cliente con tres cuentas"
+        input:
+          cliente_id: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+        value:
+          - cuentaId: "CTA-122"
+            clienteId: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+            saldo: 1800.50
+          - cuentaId: "CTA-123"
+            clienteId: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+            saldo: 100.00
+          - cuentaId: "CTA-999"
+            clienteId: "71992c72-cc1c-4c5a-8b50-9ee4fb6c214d"
+            saldo: 0.00
+      sin_cuentas:
+        summary: "Cliente existente que todavía no tiene cuentas"
+        input:
+          cliente_id: "88888888-cc1c-4c5a-8b50-9ee4fb6c214d"
+        value: []
+      cliente_inexistente:
+        summary: "El cliente no existe en el core"
+        input:
+          cliente_id: "00000000-0000-0000-0000-000000000000"
+        error:
+          code: -32602
+          message: "Cliente no encontrado"
+          data:
+            cliente_id: "00000000-0000-0000-0000-000000000000"
+    server:
+      - protocol: streamable-http
+        url: "mariadb://127.0.0.1:3306/botibank?getConsultarCuentasByClienteId"
+        description: "WSO2 MCP Gateway"
+
+  listar_servicios:
+    name: "listar_servicios"
+    backend:
+      tool: "get_servicios"
+    summary: "Listar servicios a pagar"
+    description: "Lista los servicios disponibles para pagar (luz, agua, internet, etc.) con sus montos y vencimientos."
+    inputSchema:
+      type: "object"
+      properties: {} # Sin parámetros
+      additionalProperties: false # Recomendado por MCP para tools sin parámetros
+      example: {}
+    outputSchema:
+      type: "object"
+      additionalProperties: false
+      properties:
+        servicios:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Servicio"
+    example:
+      - codigoServicio: "LZ1"
+        nombre: "Luz"
+        monto: 50.00
+        vencimiento: "2023-12-31"
+
+  # ----------------------------------------
+  # HERRAMIENTAS FINANCIERAS (WRITE / SENSIBLES)
+  # ----------------------------------------
+  ingresar_dinero:
+    name: "ingresar_dinero"
+    backend:
+      tool: "post_cuentas_by_cuentaId_ingresar"
+      arguments:
+        cuentaId: "cuenta_id"
+        "requestBody.monto": "monto"
+    summary: "Depositar dinero"
+    description: "Ingresa dinero a una cuenta bancaria específica."
+    policies:
+      rateLimit:
+        requestsPerMinute: 10
+      guardrails:
+        promptInjectionDetection: true
+    inputSchema:
+      type: "object"
+      required: [ "cuenta_id", "monto" ]
+      properties:
+        cuenta_id: { type: "string" }
+        monto: { type: "number", minimum: 0.01 }
+      example:
+        cuenta_id: "CTA-122"
+        monto: 50.00
+    outputSchema:
+      type: "object"
+      description: "Confirmación del ingreso con el saldo resultante"
+      properties:
+        mensaje: { type: "string" }
+        nuevoSaldo: { type: "number" }
+    examples:
+      default:
+        summary: "Ingreso aplicado"
+        input:
+          cuenta_id: "CTA-122"
+          monto: 50.00
+        value:
+          mensaje: "Ingreso exitoso"
+          nuevoSaldo: 1850.50
+      cuenta_inexistente:
+        summary: "La cuenta destino no existe"
+        input:
+          cuenta_id: "CTA-000"
+          monto: 50.00
+        error:
+          code: -32602
+          message: "Cuenta no encontrada"
+
+    errors:
+      "404":
+        rpcCode: -32602
+        description: "Error: Cuenta no encontrada."
+        aiAction: "Informa al usuario que la cuenta no existe."
+
+  transferir_dinero:
+    name: "transferir_dinero"
+    backend:
+      tool: "post_cuentas_by_cuentaId_transferir"
+      arguments:
+        cuentaId: "cuenta_origen"
+        "requestBody.cuentaDestino": "cuenta_destino"
+        "requestBody.monto": "monto"
+        "requestBody.concepto": "concepto"
+    summary: "Transferencia entre cuentas"
+    description: "Realiza una transferencia de dinero entre dos cuentas bancarias (origen y destino)."
+    # Gobernanza estricta para transferencias
+    security:
+      - AgentOAuthClientCredentials: []
+      - UserDelegationOAuth: [ "bank:transfer:execute" ]
+    policies:
+      requiresHumanInTheLoop: true # Obliga a confirmación visual en la UI
+    inputSchema:
+      type: "object"
+      required: [ "cuenta_origen", "cuenta_destino", "monto", "concepto" ]
+      properties:
+        cuenta_origen: { type: "string" }
+        cuenta_destino: { type: "string" }
+        monto: { type: "number", minimum: 0.01 }
+        concepto: { type: "string" }
+
+      example:
+        cuenta_origen: "CTA-122"
+        cuenta_destino: "CTA-999"
+        monto: 500.00
+        concepto: "Traspaso entre cuentas propias"
+    outputSchema:
+      type: "object"
+      description: "Confirmación de la transferencia con el saldo restante en la cuenta origen"
+      properties:
+        mensaje: { type: "string" }
+        saldoRestante: { type: "number" }
+    examples:
+      default:
+        summary: "Transferencia aceptada"
+        input:
+          cuenta_origen: "CTA-122"
+          cuenta_destino: "CTA-999"
+          monto: 500.00
+          concepto: "Traspaso entre cuentas propias"
+        value:
+          mensaje: "Transferencia realizada con éxito"
+          saldoRestante: 1300.50
+      saldo_insuficiente:
+        summary: "La cuenta origen no cubre el monto"
+        input:
+          cuenta_origen: "CTA-123"
+          cuenta_destino: "CTA-999"
+          monto: 5000.00
+          concepto: "Traspaso imposible"
+        error:
+          code: -32000
+          message: "Saldo insuficiente en la cuenta"
+          data:
+            cuenta_origen: "CTA-123"
+            saldo_disponible: 100.00
+      cuenta_inexistente:
+        summary: "Cuenta de origen o destino inexistente"
+        input:
+          cuenta_origen: "CTA-000"
+          cuenta_destino: "CTA-999"
+          monto: 100.00
+          concepto: "Cuenta que no existe"
+        error:
+          code: -32602
+          message: "Cuenta de origen o destino no encontrada"
+
+    errors:
+      "404":
+        rpcCode: -32602
+        description: "Error: Cuenta de origen o destino no encontrada."
+      "402":
+        rpcCode: -32000
+        description: "Error: Saldo insuficiente."
+        aiAction: "Informa que la cuenta origen no tiene fondos suficientes para cubrir el monto."
+
+  pagar_servicio:
+    name: "pagar_servicio"
+    backend:
+      tool: "post_servicios_pagar"
+      arguments:
+        "requestBody.cuentaOrigen": "cuenta_origen"
+        "requestBody.codigoServicio": "codigo_servicio"
+        "requestBody.monto": "monto"
+    summary: "Pago de impuestos/servicios"
+    description: "Paga un servicio (luz, agua, gas) descontando el dinero de una cuenta origen."
+    inputSchema:
+      type: "object"
+      required: [ "cuenta_origen", "codigo_servicio", "monto" ]
+      properties:
+        cuenta_origen: { type: "string" }
+        codigo_servicio: { type: "string", description: "Código del servicio (ej. LZ1, AG2)" }
+        monto: { type: "number", minimum: 0.01, description: "Importe a pagar; el backend lo exige" }
+      example:
+        cuenta_origen: "CTA-122"
+        codigo_servicio: "LZ1"
+        monto: 50.00
+    outputSchema:
+      type: "object"
+      description: "Confirmación del pago con el saldo resultante"
+      properties:
+        mensaje: { type: "string" }
+        nuevoSaldo: { type: "number" }
+    examples:
+      default:
+        summary: "Servicio pagado"
+        input:
+          cuenta_origen: "CTA-122"
+          codigo_servicio: "LZ1"
+          monto: 50.00
+        value:
+          mensaje: "Servicio pagado con éxito"
+          nuevoSaldo: 1750.50
+      monto_incorrecto:
+        summary: "El monto no coincide con la factura"
+        input:
+          cuenta_origen: "CTA-122"
+          codigo_servicio: "LZ1"
+          monto: 999.00
+        error:
+          code: -32602
+          message: "El monto enviado no coincide con el valor de la factura"
+      saldo_insuficiente:
+        summary: "La cuenta origen no cubre el pago"
+        input:
+          cuenta_origen: "CTA-999"
+          codigo_servicio: "LZ1"
+          monto: 50.00
+        error:
+          code: -32000
+          message: "Saldo insuficiente en la cuenta"
+
+    errors:
+      "404":
+        rpcCode: -32602
+        description: "Servicio o cuenta origen no encontrada."
+      "402":
+        rpcCode: -32000
+        description: "Saldo insuficiente."
+
+  pagar_hipoteca:
+    name: "pagar_hipoteca"
+    backend:
+      tool: "post_hipotecas_by_idHipoteca_pagar"
+      arguments:
+        idHipoteca: "id_hipoteca"
+        "requestBody.cuentaOrigen": "cuenta_origen"
+        "requestBody.monto": "monto"
+    summary: "Pago de cuota hipotecaria"
+    description: "Realiza el pago de una cuota de hipoteca descontando de la cuenta origen."
+    inputSchema:
+      type: "object"
+      required: [ "cuenta_origen", "id_hipoteca", "monto" ]
+      properties:
+        cuenta_origen: { type: "string" }
+        id_hipoteca: { type: "string", description: "ID de la hipoteca (ej. HIP-001)" }
+        monto: { type: "number", minimum: 0.01 }
+      example:
+        cuenta_origen: "CTA-122"
+        id_hipoteca: "HIP-001"
+        monto: 850.50
+    outputSchema:
+      type: "object"
+      description: "Confirmación del pago de la cuota"
+      properties:
+        mensaje: { type: "string" }
+        saldoPendienteHipoteca: { type: "number" }
+        saldoRestanteCuenta: { type: "number" }
+    examples:
+      default:
+        summary: "Cuota pagada"
+        input:
+          cuenta_origen: "CTA-122"
+          id_hipoteca: "HIP-001"
+          monto: 850.50
+        value:
+          mensaje: "Pago de hipoteca procesado con éxito"
+          saldoPendienteHipoteca: 148000.00
+          saldoRestanteCuenta: 950.00
+      hipoteca_inexistente:
+        summary: "La hipoteca no existe"
+        input:
+          cuenta_origen: "CTA-122"
+          id_hipoteca: "HIP-999"
+          monto: 850.50
+        error:
+          code: -32602
+          message: "Hipoteca no encontrada"
+      saldo_insuficiente:
+        summary: "La cuenta origen no cubre la cuota"
+        input:
+          cuenta_origen: "CTA-999"
+          id_hipoteca: "HIP-001"
+          monto: 850.50
+        error:
+          code: -32000
+          message: "Saldo insuficiente en la cuenta para pagar la hipoteca"
+
+    errors:
+      "404":
+        rpcCode: -32602
+        description: "Hipoteca o cuenta origen no encontrada."
+      "402":
+        rpcCode: -32000
+        description: "Saldo insuficiente."
+
+# --- RESOURCES: Datos y Documentos ---
+resources:
+  politica_privacidad:
+    title: "Privacy Policy"
+    description: "Current legal text regarding data treatment."
+    uri: "ots://botibank/politica-privacidad"
+    mimeType: "text/markdown"
+    # MISMA ESTRUCTURA QUE TOOLS
+    example: |
+      # Privacy Policy v2.1
+      BotiBank treats your data with the highest security...
+    server:
+      - protocol: streamable-http
+        url: "https://localhost:8243/botibankext/1.0/mcp"
+        description: "Document Center Server"
+
+  movimientos_cuenta:
+    title: "Account Movements"
+    description: "Detailed list of the transactions of one account, newest first, so the agent can cite or summarise them."
+    uriTemplate: "ots://botibank/cuentas/{cuentaId}/movimientos"
+    mimeType: "application/json"
+    # Reading someone's movements is not the same as reading the privacy
+    # policy: this one demands a scope, and ots.json says which consumer
+    # carries it.
+    security:
+      - UserDelegationOAuth: [ "cuentas:read" ]
+    # MISMA ESTRUCTURA QUE TOOLS
+    example:
+      - { "date": "2026-09-01", "amount": -50.00, "concept": "Supermarket" }
+      - { "date": "2026-09-02", "amount": 1200.00, "concept": "Salary" }
+    server:
+      - protocol: streamable-http
+        url: "https://localhost:8243/botibankmcp/1.0/mcp"
+        description: "Document Center Server"
+
+# --- PROMPTS: Plantillas de Interacción ---
+prompts:
+  resumen_mensual:
+    title: "Monthly Summary"
+    description: "Generates an executive summary of monthly spending."
+    arguments:
+      - name: "cuenta_id"
+        description: "The account ID to summarize"
+        required: true
+    # MISMA ESTRUCTURA QUE TOOLS
+    example:
+      messages:
+        - role: "user"
+          content: { type: "text", text: "Act as a financial expert. Analyze account {cuenta_id}..." }
+    server:
+      - protocol: streamable-http
+        url: "https://localhost:8243/botibankmcp/1.0/mcp"
+        description: "AI Prompt Studio Server"
+
+  guia_creditos:
+    title: "Loan Guide"
+    description: "Helps the user understand which loan fits their profile."
+    arguments:
+      - name: "perfil_riesgo"
+        description: "User risk profile"
+        required: true
+    # MISMA ESTRUCTURA QUE TOOLS
+    example:
+      messages:
+        - role: "user"
+          content: { type: "text", text: "Based on {perfil_riesgo} profile, explain our loans..." }
+    server:
+      - protocol: database
+        url: mariadb://127.0.0.1:3306/botibank?getConsultarCuentasByClienteId
+
+
+  revisar_clientes:
+      title: "Revisar la cartera de clientes"
+      description: "Lista los clientes y pide un repaso: duplicados, correos que faltan y a quién contactar primero."
+      arguments:
+        - name: "criterio"
+          description: "Qué mirar: duplicados, correos incompletos, apellidos repetidos…"
+          required: true
+        - name: "cuantos"
+          description: "Cuántos destacar en la respuesta"
+          required: false
+      example:
+        messages:
+          - role: "user"
+            content:
+              type: "text"
+              text: |
+                Usa la herramienta listar_clientes para obtener la cartera y revísala
+                con este criterio: {criterio}.
+                Destaca {cuantos} casos, y para cada uno di el id del cliente, qué le
+                pasa y qué harías. Si el criterio no aplica a nadie, dilo en una línea
+                en vez de inventar hallazgos.
+        security:
+          - UserDelegationOAuth: [ "clientes:read" ]
+  
+# =====================================================================
+# 4. COMPONENTES Y ESQUEMAS
+# =====================================================================
+components:
+  schemas:
+    Servicio:
+      type: "object"
+      properties:
+        codigoServicio: { type: "string" }
+        nombre: { type: "string" }
+        monto: { type: "number" }
+        vencimiento: { type: "string" }
+    Cliente:
+      type: "object"
+      properties:
+        id: { type: "string" }
+        nombre: { type: "string" }
+        apellido: { type: "string" }
+        email: { type: "string" }
+
+    Cuenta:
+      type: "object"
+      properties:
+        cuentaId: { type: "string" }
+        clienteId: { type: "string" }
+        saldo: { type: "number" }
+        tipo: { type: "string", enum: [ "Corriente", "Ahorro", "Inversión", "Sueldo" ] }
+
+  securitySchemes:
+    AgentOAuthClientCredentials:
+      type: oauth2
+      description: "Token de acceso emitido por WSO2 para BotiBank Agent (M2M)"
+      flows:
+        clientCredentials:
+          tokenUrl: "https://localhost:8243/oauth2/token"
+          scopes:
+            "mcp:invoke": "Llamada básica a herramientas"
+
+    UserDelegationOAuth:
+      type: oauth2
+      description: "Token del usuario final para operaciones que mueven fondos"
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://localhost:8243/oauth2/authorize"
+          tokenUrl: "https://localhost:8243/oauth2/token"
+          scopes:
+            "bank:transfer:execute": "Aprobación de movimientos de fondos"
+            "cuentas:read": "Lectura de cuentas y de sus movimientos"
+            "clientes:read": "Lectura de la cartera de clientes"

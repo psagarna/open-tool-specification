@@ -1,0 +1,9 @@
+b39435084771e962ec20e6464152b2caef6d39869be75eaa014c805a12e97fda  otsgw-1.0.0-darwin-amd64.tar.gz
+88bc2344aebf6a1e4d5671d327f4a40306c669f3f84a70863b628e5784d7651a  otsgw-1.0.0-darwin-arm64.tar.gz
+315d4cf4a50068e9af1ddebdf84aec7e729cf394b08d08f99052d6757e5d477d  otsgw-1.0.0-freebsd-amd64.tar.gz
+27e78799824810b1f1a84168737bf2a71a5da6587ab93860defd44bba1e2f2c9  otsgw-1.0.0-linux-386.tar.gz
+d41328b7d64926ffabbd5b9a2ff04aeb677a1636792e5eaa7aab6ea14f9900fd  otsgw-1.0.0-linux-amd64.tar.gz
+1cf23350456cc397095574a54c69ecc2eb00776c520b1b2d5f3053b23d4a0be8  otsgw-1.0.0-linux-arm.tar.gz
+3632e37e1e2f36d28f27fda275f284c4aceac1a3c298f9a62c33380ebb57e0a3  otsgw-1.0.0-linux-arm64.tar.gz
+47b257e8fed4ea55d1946d47f2ba2091daee24dbf2ca15ad167bdff93fac2a9c  otsgw-1.0.0-windows-amd64.zip
+512eddef90d9c682bd335c12413f60dde09c6ae9682d7277d88986ec22b46ad6  otsgw-1.0.0-windows-arm64.zip

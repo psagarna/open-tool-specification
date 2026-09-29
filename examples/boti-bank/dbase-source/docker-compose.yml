@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:lts
+    container_name: mariadb_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password_segura # Cambia esto en producción
+      MARIADB_DATABASE: mi_base_de_datos
+      MARIADB_USER: usuario_db
+      MARIADB_PASSWORD: password_segura # Cambia esto
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:
