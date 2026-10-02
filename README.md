@@ -487,6 +487,7 @@ anything, so no subscription changed meaning when this arrived.
 ---
 
 ## OTS Designer, for VS Code
+[Download from Microsoft VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pablosagarna.opentool-designer)
 
 A tool for writing the specification, and for watching what the gateway does with it. Install the
 `.vsix` for your platform and reload the window; it carries the gateway inside, so there is nothing
