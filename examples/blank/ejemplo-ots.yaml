@@ -2,7 +2,7 @@
 # Ejemplo
 # OTS specification — the contract an agent sees, served by the OTS Gateway.
 # =====================================================================
-OTS: "1.0.0"
+ots: "1.0.0"
 info:
   title: "Ejemplo"
   version: "1.0.0"
