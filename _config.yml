@@ -1,0 +1,5 @@
+title: OpenTool Specification - OTS
+description: A standard way to describe what a tool does, what it expects, and what it returns.
+theme: jekyll-theme-primer
+exclude:
+  - dist
