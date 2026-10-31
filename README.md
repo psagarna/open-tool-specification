@@ -385,3 +385,10 @@ Existing approaches, such as tool retrieval using RAGs, hierarchical agents, and
 The proposal aims to reduce integration complexity, avoid the individual exploration of each server, and facilitate a coherent governance and security model. Its main value lies in separating the discovery and consumption of tools, resources, and prompts from the specific details of how these are implemented.
 
 **Ultimately, OTS aims to provide a common layer between AI agents and the ecosystem of tools, resources, and prompts, promoting simpler, more governable, and scalable discovery and access as the architecture grows.**
+
+## 7. References
+
+1. **OpenTool Specification repository** — [github.com/psagarna/open-tool-specification](https://github.com/psagarna/open-tool-specification)
+2. **OpenTool Designer (VS Code plugin)** — [Download from the Microsoft VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pablosagarna.opentool-designer)
+3. **OTS Gateway prototype (distribution)** — [open-tool-specification/dist](https://github.com/psagarna/open-tool-specification/tree/main/dist)
+4. **Blank example** — [open-tool-specification/examples/blank](https://github.com/psagarna/open-tool-specification/tree/main/examples/blank)
