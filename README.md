@@ -392,3 +392,14 @@ The proposal aims to reduce integration complexity, avoid the individual explora
 2. **OpenTool Designer (VS Code plugin)** — [Download from the Microsoft VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pablosagarna.opentool-designer)
 3. **OTS Gateway prototype (distribution)** — [open-tool-specification/dist](https://github.com/psagarna/open-tool-specification/tree/main/dist)
 4. **Blank example** — [open-tool-specification/examples/blank](https://github.com/psagarna/open-tool-specification/tree/main/examples/blank)
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-X27T9Q103W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-X27T9Q103W');
+</script>
